@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.js"></script>
+</head>
+<body>
+<h1>Chat Example</h1>
+
+<div id="messages">
+
+</div>
+<input type="text" id="message">
+<button id="chat-submit">Submit</button>
+
+<script>
+  var me = localStorage.getItem('me');
+  if (me === null) {
+      me = `user-${Math.round(Math.random() * 1000)}`;
+      localStorage.setItem('me', me);
+  }
+  axios.get('http://localhost:8082/messages').then(({ data }) => {
+      if (data.length) {
+          data.map((i) => ({
+              username: me === i.username ? undefined : i.username,
+              text: i.text,
+          })).forEach(i => addMessage(i));
+      }
+  });
+  var addMessage = (message) => {
+      const messageWrapper = document.createElement('div');
+      const messageTxt = document.createTextNode(`${message.username || 'You'}: ${message.text}`);
+      messageWrapper.appendChild(messageTxt);
+      document.getElementById('messages').appendChild(messageWrapper);
+  };
+  var socket = io.connect('http://localhost:8082');
+  socket.emit('username', { name: me });
+  document.getElementById('chat-submit').onclick = () => {
+      var text = document.getElementById('message').value;
+      var message = { text };
+      socket.emit('message', message);
+      addMessage(message);
+      document.getElementById('message').value = '';
+  };
+  socket.on('message', (message) => {
+      addMessage(message);
+  });
+</script>
+    
+</body>
+</html>
